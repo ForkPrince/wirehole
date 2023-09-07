@@ -9,12 +9,10 @@ networks:
 
 services:
   unbound:
-    image: "mvance/unbound:latest"
+    image: "klutchell/unbound"
     container_name: unbound
     restart: unless-stopped
     hostname: "unbound"
-    volumes:
-      - "./unbound:/opt/unbound/etc/unbound/"
     networks:
       private_network:
         ipv4_address: 10.2.0.200
@@ -23,33 +21,29 @@ services:
 
   wireguard:
     depends_on: [unbound, pihole]
-    image: linuxserver/wireguard
-    container_name: wireguard
+    environment:
+      #- WG_HOST=my.ddns.net
+      - PASSWORD=
+      - WG_PORT=51820
+      - WG_DEFAULT_ADDRESS=10.6.0.x
+      - WG_DEFAULT_DNS=10.2.0.100
+    image: weejewel/wg-easy
+    container_name: wg-easy
+    volumes:
+      - .:/etc/wireguard
+    ports:
+      - "51820:51820/udp"
+      - "51821:51821/tcp"
+    restart: unless-stopped
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Myanmar/Yangon # Change to your timezone
-      - SERVERPORT=51820
-      #- SERVERURL=my.ddns.net #optional - For use with DDNS (Uncomment to use)
-      - PEERS=5 # How many peers to generate for you (clients)
-      - PEERDNS=10.2.0.100 # Set it to point to pihole
-      - INTERNAL_SUBNET=10.6.0.0
-      
-    volumes:
-      - ./wireguard:/config
-      - /lib/modules:/lib/modules
-    ports:
-      - "51820:51820/udp"
-    dns:
-      - 10.2.0.100 # Points to pihole
-      - 10.2.0.200 # Points to unbound
     sysctls:
+      - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
-
-    restart: unless-stopped
+    dns:
+      - 10.2.0.100
+      - 10.2.0.200
     networks:
       private_network:
         ipv4_address: 10.2.0.3
@@ -62,19 +56,16 @@ services:
     hostname: pihole
     dns:
       - 127.0.0.1
-      - 10.2.0.200 # Points to unbound
+      - 10.2.0.200
     environment:
-      TZ: "America/Los_Angeles"
-      WEBPASSWORD: "" # Blank password - Can be whatever you want.
-      ServerIP: 10.2.0.100 # Internal IP of pihole
-      DNS1: 10.2.0.200 # Unbound IP
-      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
-    # Volumes store your data between container upgrades
+      TZ: "Asia/Hong_Kong"
+      WEBPASSWORD: ""
+      ServerIP: 10.2.0.100
+      DNS1: 10.2.0.200
+      DNS2: 10.2.0.200
     volumes:
       - "./etc-pihole/:/etc/pihole/"
       - "./etc-dnsmasq.d/:/etc/dnsmasq.d/"
-    # Recommended but not required (DHCP needs NET_ADMIN)
-    #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
     cap_add:
       - NET_ADMIN
     networks:
