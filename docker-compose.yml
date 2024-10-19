@@ -1,36 +1,17 @@
-version: "3"
-
-networks:
-  private_network:
-    ipam:
-      driver: default
-      config:
-        - subnet: 10.2.0.0/24
+version: "3.8"
 
 services:
-  unbound:
-    image: klutchell/unbound:latest
-    container_name: unbound
-    restart: unless-stopped
-    hostname: "unbound"
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.200
-    cap_add:
-      - NET_ADMIN
-
   wireguard:
     depends_on: [unbound, pihole]
     environment:
-      - WG_HOST=my.ddns.net
-      - PASSWORD=
-      - WG_PORT=51820
-      - WG_DEFAULT_ADDRESS=10.6.0.x
-      - WG_DEFAULT_DNS=10.2.0.100
-    image: ghcr.io/wg-easy/wg-easy:latest
-    container_name: wg-easy
+      - WG_HOST=REPLACE_WITH_YOUR_SERVER_IP
+      - PASSWORD_HASH=REPLACE_WITH_YOUR_HASHED_PASSWORD
+      - WG_DEFAULT_DNS=10.8.1.3
+      - WG_DEFAULT_ADDRESS=10.8.0.x
+    image: ghcr.io/wg-easy/wg-easy
+    container_name: wireguard
     volumes:
-      - .:/etc/wireguard
+      - /docker/wirehole/wireguard:/etc/wireguard
     ports:
       - "51820:51820/udp"
       - "51821:51821/tcp"
@@ -41,33 +22,39 @@ services:
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
-    dns:
-      - 10.2.0.100
-      - 10.2.0.200
     networks:
-      private_network:
-        ipv4_address: 10.2.0.3
+      wirehole:
+        ipv4_address: 10.8.1.2
 
   pihole:
     depends_on: [unbound]
+    image: pihole/pihole
     container_name: pihole
-    image: pihole/pihole:latest
-    restart: unless-stopped
-    hostname: pihole
-    dns:
-      - 127.0.0.1
-      - 10.2.0.200
     environment:
-      TZ: "Asia/Hong_Kong"
-      WEBPASSWORD: ""
-      ServerIP: 10.2.0.100
-      DNS1: 10.2.0.200
-      DNS2: 10.2.0.200
+      - WEBPASSWORD=REPLACE_WITH_YOUR_WEB_PASSWORD
+      - DNS1=10.8.1.4
+      - DNS2=10.8.1.4
     volumes:
-      - "./etc-pihole/:/etc/pihole/"
-      - "./etc-dnsmasq.d/:/etc/dnsmasq.d/"
-    cap_add:
-      - NET_ADMIN
+      - "/docker/wirehole/pihole/config:/etc/pihole"
+      - "/docker/wirehole/pihole/dnsmasq:/etc/dnsmasq.d"
+    dns:
+      - "127.0.0.1"
+      - "10.8.1.4"
+    restart: unless-stopped
     networks:
-      private_network:
-        ipv4_address: 10.2.0.100
+      wirehole:
+        ipv4_address: 10.8.1.3
+
+  unbound:
+    image: klutchell/unbound
+    container_name: unbound
+    restart: unless-stopped
+    networks:
+      wirehole:
+        ipv4_address: 10.8.1.4
+
+networks:
+  wirehole:
+    ipam:
+      config:
+        - subnet: 10.8.1.0/24
