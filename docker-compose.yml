@@ -9,7 +9,7 @@ networks:
 
 services:
   unbound:
-    image: "klutchell/unbound"
+    image: klutchell/unbound:latest
     container_name: unbound
     restart: unless-stopped
     hostname: "unbound"
@@ -22,12 +22,12 @@ services:
   wireguard:
     depends_on: [unbound, pihole]
     environment:
-      #- WG_HOST=my.ddns.net
+      - WG_HOST=my.ddns.net
       - PASSWORD=
       - WG_PORT=51820
       - WG_DEFAULT_ADDRESS=10.6.0.x
       - WG_DEFAULT_DNS=10.2.0.100
-    image: ghcr.io/wg-easy/wg-easy
+    image: ghcr.io/wg-easy/wg-easy:latest
     container_name: wg-easy
     volumes:
       - .:/etc/wireguard
