@@ -1,7 +1,7 @@
 > [!IMPORTANT]
-> I've returned to this project and have improved everything.
+> I archived this then realised that upstream is broken...
 > 
-> After trying upstream and finding out it sucks.
+> So, welcome back to Prinky updates his fork!
 
 # WireHole (fork)
 
